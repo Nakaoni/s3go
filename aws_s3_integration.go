@@ -7,7 +7,6 @@ import (
 	"log"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/aws/smithy-go"
@@ -17,12 +16,7 @@ type AwsS3 struct {
 	*s3.Client
 }
 
-func NewAwsS3(ctx context.Context) (*AwsS3, error) {
-	cfg, err := config.LoadDefaultConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-
+func NewAwsS3(cfg aws.Config) (*AwsS3, error) {
 	return &AwsS3{s3.NewFromConfig(cfg)}, nil
 }
 

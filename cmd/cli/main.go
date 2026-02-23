@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 	"s3go"
+
+	"github.com/aws/aws-sdk-go-v2/config"
 )
 
 const (
@@ -63,7 +65,12 @@ func handle(inputs []string) {
 }
 
 func getClientFromConfig(ctx context.Context) (*s3go.Server, error) {
-	awsS3, err := s3go.NewAwsS3(ctx)
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	awsS3, err := s3go.NewAwsS3(cfg)
 	if err != nil {
 		return nil, err
 	}
