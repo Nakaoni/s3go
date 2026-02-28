@@ -15,14 +15,16 @@ import (
 
 var ports = []string{"9000", "9001"}
 
+var S3TestEnvs = map[string]string{
+	"RUSTFS_REGION":            "eu-west-1",
+	"RUSTFS_ENDPOINT_URL":      "http://localhost:9000",
+	"RUSTFS_ACCESS_KEY_ID":     "rustfsadmin",
+	"RUSTFS_SECRET_ACCESS_KEY": "rustfsadmin",
+}
+
 func StartDockerS3Server(t testing.TB) {
 	t.Helper()
 	ctx := context.Background()
-
-	os.Setenv("RUSTFS_REGION", "eu-west-1")
-	os.Setenv("RUSTFS_ACCESS_KEY_ID", "rustfsadmin")
-	os.Setenv("RUSTFS_SECRET_ACCESS_KEY", "rustfsadmin")
-	os.Setenv("RUSTFS_ENDPOINT_URL", "http://localhost:9000")
 
 	req := testcontainers.ContainerRequest{
 		Image: "rustfs/rustfs:latest",
@@ -34,10 +36,7 @@ func StartDockerS3Server(t testing.TB) {
 			wait.ForListeningPort(nat.Port(ports[0])).WithStartupTimeout(30*time.Second),
 			wait.ForListeningPort(nat.Port(ports[1])).WithStartupTimeout(30*time.Second),
 		),
-		Env: map[string]string{
-			"RUSTFS_ACCESS_KEY_ID":     "rustfsadmin",
-			"RUSTFS_SECRET_ACCESS_KEY": "rustfsadmin",
-		},
+		Env: S3TestEnvs,
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{

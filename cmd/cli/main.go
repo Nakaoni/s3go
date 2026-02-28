@@ -70,7 +70,8 @@ func getClientFromConfig(ctx context.Context) (*s3go.Server, error) {
 		return nil, err
 	}
 
-	awsS3, err := s3go.NewAwsS3(cfg)
+	// TODO: find a way to get usePathStyle from the user
+	awsS3, err := s3go.NewAwsS3(cfg, false)
 	if err != nil {
 		return nil, err
 	}

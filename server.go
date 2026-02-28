@@ -19,6 +19,7 @@ type Object struct {
 
 type S3Client interface {
 	BucketsList(ctx context.Context, previousToken *string) (buckets []Bucket, continuationToken *string, err error)
+	BucketAdd(ctx context.Context, name string) (bool, error)
 	ObjectsList(ctx context.Context, bucketName string, previousToken *string) (objects []Object, continuationToken *string, err error)
 	ObjectDelete(ctx context.Context, bucketName string, key string) (bool, error)
 	ObjectExists(ctx context.Context, bucketName string, key string) (bool, error)
@@ -34,6 +35,10 @@ func NewS3Server(client S3Client) *Server {
 
 func (s Server) ListBuckets(ctx context.Context, previousToken *string) (buckets []Bucket, continuationToken *string, err error) {
 	return s.s3client.BucketsList(ctx, previousToken)
+}
+
+func (s Server) CreateBucket(ctx context.Context, bucketName string) (bool, error) {
+	return s.s3client.BucketAdd(ctx, bucketName)
 }
 
 func (s Server) ListObjects(ctx context.Context, bucketName string, previousToken *string) (objects []Object, continuationToken *string, err error) {

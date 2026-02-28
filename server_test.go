@@ -20,6 +20,11 @@ func (s *S3ClientStud) BucketsList(ctx context.Context, previousToken *string) (
 	return
 }
 
+func (s *S3ClientStud) BucketAdd(ctx context.Context, name string) (bool, error) {
+	s.buckets = append(s.buckets, s3go.Bucket{Name: &name})
+	return true, nil
+}
+
 func (s *S3ClientStud) ObjectsList(ctx context.Context, bucketName string, previousToken *string) (objects []s3go.Object, continuationToken *string, err error) {
 	objects = s.objects[bucketName]
 
@@ -46,25 +51,41 @@ func (s *S3ClientStud) ObjectExists(ctx context.Context, bucketName string, key 
 	return false, nil
 }
 
-func TestSeeBucketsList(t *testing.T) {
+func TestBuckets(t *testing.T) {
 	dummyS3Client := makeS3Client()
-	editor := s3go.NewS3Server(dummyS3Client)
+	server := s3go.NewS3Server(dummyS3Client)
+	t.Run("List buckets", func(t *testing.T) {
+		// TODO: test other returned values cases
+		got, _, _ := server.ListBuckets(context.Background(), nil)
 
-	// TODO: test other returned values cases
-	got, _, _ := editor.ListBuckets(context.Background(), nil)
+		want := dummyS3Client.buckets
+		assertDeepEqual(t, got, want)
+	})
+	t.Run("Create bucket", func(t *testing.T) {
+		bucketName := "bucket-1"
+		ok, _ := server.CreateBucket(context.Background(), bucketName)
 
-	want := dummyS3Client.buckets
-	assertDeepEqual(t, got, want)
+		if !ok {
+			t.Errorf("Could not create bucket %q", bucketName)
+		}
+
+		got, _, _ := server.ListBuckets(context.Background(), nil)
+
+		want := 11
+		if len(got) != want {
+			t.Errorf("Expected %d buckets, got %v", want, len(got))
+		}
+	})
 }
 
 func TestObjects(t *testing.T) {
 	dummyS3Client := makeS3Client()
-	editor := s3go.NewS3Server(dummyS3Client)
+	server := s3go.NewS3Server(dummyS3Client)
 
 	t.Run("Object list", func(t *testing.T) {
 		bucketName := "bucket-1"
 		// TODO: test other returned values cases
-		got, _, _ := editor.ListObjects(context.Background(), bucketName, nil)
+		got, _, _ := server.ListObjects(context.Background(), bucketName, nil)
 
 		want := dummyS3Client.objects[bucketName]
 		assertDeepEqual(t, got, want)
@@ -77,7 +98,7 @@ func TestObjects(t *testing.T) {
 		bucketName := "bucket-1"
 		objectKey := "object-1"
 		// TODO: test other returned values cases
-		got, _ := editor.ObjectExists(context.Background(), bucketName, objectKey)
+		got, _ := server.ObjectExists(context.Background(), bucketName, objectKey)
 
 		if !got {
 			t.Errorf("Could not find object %q in bucket %q", objectKey, bucketName)

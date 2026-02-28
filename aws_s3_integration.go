@@ -16,8 +16,14 @@ type AwsS3 struct {
 	*s3.Client
 }
 
-func NewAwsS3(cfg aws.Config) (*AwsS3, error) {
-	return &AwsS3{s3.NewFromConfig(cfg)}, nil
+func NewAwsS3(cfg aws.Config, usePathStyle bool) (*AwsS3, error) {
+	var pathStyleFn func(o *s3.Options)
+	if usePathStyle {
+		pathStyleFn = func(o *s3.Options) {
+			o.UsePathStyle = true
+		}
+	}
+	return &AwsS3{s3.NewFromConfig(cfg, pathStyleFn)}, nil
 }
 
 func (s *AwsS3) BucketsList(ctx context.Context, previousToken *string) (buckets []Bucket, continuationToken *string, err error) {
@@ -38,7 +44,36 @@ func (s *AwsS3) BucketsList(ctx context.Context, previousToken *string) (buckets
 			buckets = append(buckets, Bucket{BucketRegion: b.BucketRegion, Name: b.Name, CreationDate: b.CreationDate})
 		}
 	}
-	return buckets, output.ContinuationToken, err
+
+	if output != nil {
+		continuationToken = output.ContinuationToken
+	}
+
+	return
+}
+
+func (s *AwsS3) BucketAdd(ctx context.Context, name string) (bool, error) {
+	_, err := s.CreateBucket(ctx, &s3.CreateBucketInput{
+		Bucket: aws.String(name),
+	})
+	if err != nil {
+		var apiErr smithy.APIError
+		// TODO: use BucketAlreadyOwnedByYou and BucketAlreadyExists errors
+		if errors.As(err, &apiErr) {
+			err = apiErr
+			if apiErr.ErrorCode() == "BucketAlreadyExists" {
+				fmt.Printf("Bucket with name %q already exists\n", name)
+			} else {
+				fmt.Printf("Could not create bucket. Here's why: %v\n%v", apiErr.ErrorCode(), apiErr)
+			}
+			return false, err
+		} else {
+			fmt.Printf("Could not create bucket. Here's why: %v\n", err)
+			return false, err
+		}
+	}
+
+	return true, nil
 }
 
 func (s *AwsS3) ObjectsList(ctx context.Context, bucketName string, previousToken *string) (objects []Object, continuationToken *string, err error) {
